@@ -1,0 +1,44 @@
+mutation CreateComplaint($title: String!, $description: String!, $category: String!) @auth(level: USER) {
+  complaint_insert(data: {
+    title: $title,
+    description: $description,
+    category: $category,
+    reporterId_expr: "auth.uid",
+    createdAt_expr: "request.time",
+    status: "open"
+  })
+}
+
+query ListComplaints @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  complaints {
+    id
+    title
+    description
+    category
+    createdAt
+    status
+    reporter {
+      id
+      displayName
+    }
+  }
+}
+
+mutation AddCommentToComplaint($complaintId: UUID!, $text: String!) @auth(level: USER) {
+  complaintComment_insert(data: {
+    complaintId: $complaintId,
+    userId_expr: "auth.uid",
+    text: $text,
+    createdAt_expr: "request.time"
+  })
+}
+
+query GetMyProfile @auth(level: USER) {
+  user(key: {id_expr: "auth.uid"}) {
+    id
+    displayName
+    email
+    hostelRoomNumber
+    role
+  }
+}

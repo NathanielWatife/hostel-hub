@@ -1,0 +1,49 @@
+type User @table {
+  authId: String!
+  displayName: String!
+  role: String!
+  email: String
+  hostelRoomNumber: String
+}
+
+type Complaint @table {
+  reporter: User!
+  assignedStaff: User
+  title: String!
+  description: String!
+  category: String!
+  status: String!
+  createdAt: Timestamp!
+  imageUrl: String
+  resolvedAt: Timestamp
+}
+
+type ComplaintComment @table {
+  complaint: Complaint!
+  user: User!
+  text: String!
+  createdAt: Timestamp!
+}
+
+type LostItem @table {
+  reporter: User!
+  itemName: String!
+  description: String!
+  lostDate: Date!
+  status: String!
+  createdAt: Timestamp!
+  lastSeenLocation: String
+  imageUrl: String
+}
+
+type FoundItem @table {
+  reporter: User!
+  itemName: String!
+  description: String!
+  foundDate: Date!
+  status: String!
+  createdAt: Timestamp!
+  foundLocation: String
+  imageUrl: String
+  returnedToUserId: UUID
+}

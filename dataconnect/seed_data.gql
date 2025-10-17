@@ -1,0 +1,40 @@
+mutation CreateDemoData @transaction @auth(level: PUBLIC, insecureReason: "This operation is used to seed demo data and is safe to expose to the public.") {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      authId: "demouser1authid",
+      displayName: "demouser1",
+      email: "demouser1@example.com",
+      hostelRoomNumber: "101",
+      role: "student"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      authId: "demouser2authid",
+      displayName: "demouser2",
+      email: "demouser2@example.com",
+      hostelRoomNumber: "102",
+      role: "student"
+    }
+  ])
+  complaint_insertMany(data: [
+    {
+      id: "650e8400-e29b-41d4-a716-446655440000",
+      reporterId: "550e8400-e29b-41d4-a716-446655440000",
+      category: "Noise Complaint",
+      createdAt: "2024-04-24T10:00:00Z",
+      description: "Loud music at night",
+      status: "Open",
+      title: "Noise Complaint in Room 102"
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440001",
+      reporterId: "550e8400-e29b-41d4-a716-446655440001",
+      category: "Maintenance Request",
+      createdAt: "2024-04-23T14:00:00Z",
+      description: "Broken window in common area",
+      status: "In Progress",
+      title: "Maintenance Request for Common Area"
+    }
+  ])
+}
