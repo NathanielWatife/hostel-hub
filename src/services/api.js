@@ -33,23 +33,52 @@ api.interceptors.response.use(
 );
 
 export const complaintAPI = {
-  getAll: (params) => api.get('/complaints', { params }),
-  getById: (id) => api.get(`/complaints/${id}`),
-  create: (data) => api.post('/complaints', data),
-  update: (id, data) => api.put(`/complaints/${id}`, data),
-  updateStatus: (id, status) => api.put(`/complaints/${id}/status`, { status }),
-  addComment: (id, comment) => api.post(`/complaints/${id}/comment`, { message: comment }),
-  getMyComplaints: () => api.get('/complaints/user/my-complaints'),
+  getAll: (params) => api.get('/complaints', { params }).then(response => ({
+    data: response.data.data, // Extract the data array
+    pagination: response.data.pagination
+  })),
+  getById: (id) => api.get(`/complaints/${id}`).then(response => ({
+    data: response.data.data // Extract the complaint object
+  })),
+  create: (data) => api.post('/complaints', data).then(response => ({
+    data: response.data.data // Extract the created complaint
+  })),
+  update: (id, data) => api.put(`/complaints/${id}`, data).then(response => ({
+    data: response.data.data // Extract the updated complaint
+  })),
+  updateStatus: (id, status) => api.put(`/complaints/${id}/status`, { status }).then(response => ({
+    data: response.data.data // Extract the updated complaint
+  })),
+  addComment: (id, comment) => api.post(`/complaints/${id}/comment`, { message: comment }).then(response => ({
+    data: response.data.data // Extract the new comment
+  })),
+  getMyComplaints: () => api.get('/complaints/user/my-complaints').then(response => ({
+    data: response.data.data // Extract the complaints array
+  })),
 };
 
 export const lostFoundAPI = {
-  getLostItems: (params) => api.get('/lost-found/lost', { params }),
-  getFoundItems: (params) => api.get('/lost-found/found', { params }),
-  reportLost: (data) => api.post('/lost-found/lost', data),
-  reportFound: (data) => api.post('/lost-found/found', data),
-  claimItem: (id) => api.put(`/lost-found/found/${id}/claim`),
-  getMatches: () => api.get('/lost-found/matches'),
-  getMyItems: () => api.get('/lost-found/user/my-items'),
+  getLostItems: (params) => api.get('/lost-found/lost', { params }).then(response => ({
+    data: response.data.data // Extract the lost items array
+  })),
+  getFoundItems: (params) => api.get('/lost-found/found', { params }).then(response => ({
+    data: response.data.data // Extract the found items array
+  })),
+  reportLost: (data) => api.post('/lost-found/lost', data).then(response => ({
+    data: response.data.data // Extract the created lost item
+  })),
+  reportFound: (data) => api.post('/lost-found/found', data).then(response => ({
+    data: response.data.data // Extract the created found item
+  })),
+  claimItem: (id) => api.put(`/lost-found/found/${id}/claim`).then(response => ({
+    data: response.data.data // Extract the updated found item
+  })),
+  getMatches: () => api.get('/lost-found/matches').then(response => ({
+    data: response.data.data // Extract the matches array
+  })),
+  getMyItems: () => api.get('/lost-found/user/my-items').then(response => ({
+    data: response.data.data // Extract the items object
+  })),
 };
 
 export const authAPI = {

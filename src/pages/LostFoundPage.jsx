@@ -13,7 +13,10 @@ const LostFoundPage = () => {
   const [activeTab, setActiveTab] = useState('gallery'); // 'gallery', 'lost', 'found', 'myItems'
   const [lostItems, setLostItems] = useState([]);
   const [foundItems, setFoundItems] = useState([]);
-  const [myItems, setMyItems] = useState([]);
+  const [myItems, setMyItems] = useState({
+    lostItems: [],
+    foundItems: []
+  });
   const [selectedItem, setSelectedItem] = useState(null);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -27,18 +30,27 @@ const LostFoundPage = () => {
       setLoading(true);
       
       if (activeTab === 'gallery' || activeTab === 'lost') {
-        const lostRes = await lostFoundAPI.getLostItems({ status: 'lost' });
-        setLostItems(lostRes.data);
+        const result = await lostFoundAPI.getLostItems({ status: 'lost' });
+        // Handle both response structures
+        const lostItemsData = Array.isArray(result.data) ? result.data : result.data?.data || [];
+        setLostItems(lostItemsData);
       }
       
       if (activeTab === 'gallery' || activeTab === 'found') {
-        const foundRes = await lostFoundAPI.getFoundItems({ status: 'found' });
-        setFoundItems(foundRes.data);
+        const result = await lostFoundAPI.getFoundItems({ status: 'found' });
+        // Handle both response structures
+        const foundItemsData = Array.isArray(result.data) ? result.data : result.data?.data || [];
+        setFoundItems(foundItemsData);
       }
       
       if (activeTab === 'myItems') {
-        const myItemsRes = await lostFoundAPI.getMyItems();
-        setMyItems(myItemsRes.data);
+        const result = await lostFoundAPI.getMyItems();
+        // Handle both response structures - myItems is an object with lostItems and foundItems arrays
+        const myItemsData = result.data || {};
+        setMyItems({
+          lostItems: Array.isArray(myItemsData.lostItems) ? myItemsData.lostItems : [],
+          foundItems: Array.isArray(myItemsData.foundItems) ? myItemsData.foundItems : []
+        });
       }
     } catch (error) {
       console.error('Error fetching items:', error);
@@ -149,8 +161,8 @@ const LostFoundPage = () => {
 
               {activeTab === 'myItems' && (
                 <ItemGallery
-                  lostItems={myItems.filter(item => item.status === 'lost')}
-                  foundItems={myItems.filter(item => item.status === 'found')}
+                  lostItems={myItems.lostItems} // Pass the array, not the object
+                  foundItems={myItems.foundItems} // Pass the array, not the object
                   showUserItems={true}
                 />
               )}
