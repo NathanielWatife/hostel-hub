@@ -12,10 +12,18 @@ const Footer = () => {
             and lost & found services. Making campus life easier and more organized.
           </p>
           <div className="social-links">
-            <button type="button" className="social-link" aria-label="Facebook">📘</button>
-            <button type="button" className="social-link" aria-label="Twitter">🐦</button>
-            <button type="button" className="social-link" aria-label="Instagram">📷</button>
-            <button type="button" className="social-link" aria-label="LinkedIn">💼</button>
+            <a href="#" className="social-link" aria-label="Facebook">
+              📘
+            </a>
+            <a href="#" className="social-link" aria-label="Twitter">
+              🐦
+            </a>
+            <a href="#" className="social-link" aria-label="Instagram">
+              📷
+            </a>
+            <a href="#" className="social-link" aria-label="LinkedIn">
+              💼
+            </a>
           </div>
         </div>
         
@@ -31,7 +39,7 @@ const Footer = () => {
         
         <div className="footer-contact">
           <h4>Contact Info</h4>
-          <p>📍 Yaba College Of Technology</p>
+          <p>📍 Yabatech </p>
           <p>📞 +1 (555) 123-4567</p>
           <p>✉️ support@hostelhub.edu</p>
           <p>🕒 Mon-Fri: 9:00 AM - 6:00 PM</p>

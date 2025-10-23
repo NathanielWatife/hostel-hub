@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ComplaintForm from '../components/complaints/ComplaintForm';
 import ComplaintList from '../components/complaints/ComplaintList';
@@ -11,6 +11,7 @@ const ComplaintsPage = () => {
   const { user } = useAuth();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [view, setView] = useState('list'); // 'list', 'details', 'form'
   const [filters, setFilters] = useState({
@@ -19,7 +20,11 @@ const ComplaintsPage = () => {
     priority: ''
   });
 
-  const fetchComplaints = useCallback(async () => {
+  useEffect(() => {
+    fetchComplaints();
+  }, [filters]);
+
+  const fetchComplaints = async () => {
     try {
       setLoading(true);
       const params = {};
@@ -37,15 +42,12 @@ const ComplaintsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, user]);
-
-  useEffect(() => {
-    fetchComplaints();
-  }, [fetchComplaints]);
+  };
 
   const handleCreateComplaint = async (complaintData) => {
     try {
       await complaintAPI.create(complaintData);
+      setShowForm(false);
       setView('list');
       fetchComplaints();
     } catch (error) {

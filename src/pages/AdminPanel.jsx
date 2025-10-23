@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { complaintAPI, lostFoundAPI, usersAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -17,12 +17,6 @@ const AdminPanel = () => {
     foundItems: 0
   });
   const [recentComplaints, setRecentComplaints] = useState([]);
-  const [complaints, setComplaints] = useState([]);
-  const [complaintsLoading, setComplaintsLoading] = useState(false);
-  const [complaintsPage, setComplaintsPage] = useState(1);
-  const [complaintsLimit] = useState(10);
-  const [complaintsTotalPages, setComplaintsTotalPages] = useState(1);
-  const [staff, setStaff] = useState([]);
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersPage, setUsersPage] = useState(1);
@@ -34,7 +28,13 @@ const AdminPanel = () => {
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [loading, setLoading] = useState(true);
 
-  const fetchAdminData = useCallback(async () => {
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetchAdminData();
+    }
+  }, [user]);
+
+  const fetchAdminData = async () => {
     try {
       setLoading(true);
       // In a real app, you'd have specific admin endpoints
@@ -77,51 +77,7 @@ const AdminPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, [usersLimit]);
-
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      fetchAdminData();
-    }
-  }, [user, fetchAdminData]);
-
-  const fetchComplaints = useCallback(async (page = 1, q = '') => {
-    try {
-      setComplaintsLoading(true);
-      const res = await complaintAPI.getAll({ page, limit: complaintsLimit, q });
-      setComplaints(res.data || []);
-      if (res.pagination) setComplaintsTotalPages(res.pagination.pages || 1);
-      setComplaintsPage(page);
-    } catch (err) {
-      console.error('Error fetching complaints:', err);
-      setToast({ message: 'Failed to load complaints', type: 'error' });
-    } finally {
-      setComplaintsLoading(false);
-    }
-  }, [complaintsLimit]);
-
-  useEffect(() => {
-    // when complaints tab becomes active, fetch complaints
-    if (activeTab === 'complaints' && user?.role === 'admin') {
-      fetchComplaints(1);
-    }
-  }, [activeTab, user, fetchComplaints]);
-
-  const fetchStaff = useCallback(async () => {
-    try {
-      // large limit to get all staff for dropdowns; paginate if needed
-      const res = await usersAPI.getAll({ page: 1, limit: 1000, role: 'staff' });
-      setStaff(res.data || []);
-    } catch (err) {
-      console.error('Error fetching staff list', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    // fetch staff list once for assignment dropdowns
-    if (user?.role === 'admin') fetchStaff();
-  }, [user, fetchStaff]);
-
+  };
 
   const fetchUsers = async (page = 1, q = '') => {
     try {
@@ -135,19 +91,6 @@ const AdminPanel = () => {
     } finally {
       setUsersLoading(false);
     }
-  };
-
-
-  
-
-  const handleRequestStatusChange = (complaint, newStatus) => {
-    setConfirmPayload({ type: 'update-status', complaint, newStatus });
-    setConfirmOpen(true);
-  };
-
-  const handleRequestAssign = (complaint, staffId) => {
-    setConfirmPayload({ type: 'assign-complaint', complaint, staffId });
-    setConfirmOpen(true);
   };
 
   if (!user || user.role !== 'admin') {
@@ -251,68 +194,8 @@ const AdminPanel = () => {
         {activeTab === 'complaints' && (
           <div className="complaints-tab">
             <h3>Complaints Management</h3>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12}}>
-              <div>
-                <input
-                  type="search"
-                  placeholder="Search complaints by title or user"
-                  onKeyDown={(e) => { if (e.key === 'Enter') fetchComplaints(1); }}
-                  style={{padding: '8px 10px', borderRadius: 6, border: '1px solid #e6e6e6'}}
-                />
-              </div>
-              <div style={{color: '#6c757d'}}>{complaintsTotalPages > 0 ? `Page ${complaintsPage} of ${complaintsTotalPages}` : ''}</div>
-            </div>
-
-            <div style={{overflowX: 'auto', marginTop: 12}}>
-              <table className="complaints-table">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>User</th>
-                    <th>Status</th>
-                    <th>Assigned To</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {complaints.map(c => (
-                    <tr key={c._id}>
-                      <td>{c.title}</td>
-                      <td>{c.anonymous ? 'Anonymous' : c.userId?.fullName || '-'}</td>
-                      <td>
-                        <select value={c.status} onChange={(e) => handleRequestStatusChange(c, e.target.value)}>
-                          <option value="submitted">submitted</option>
-                          <option value="in-review">in-review</option>
-                          <option value="assigned">assigned</option>
-                          <option value="in-progress">in-progress</option>
-                          <option value="resolved">resolved</option>
-                          <option value="closed">closed</option>
-                        </select>
-                      </td>
-                      <td>
-                        <select value={c.assignedTo?._id || ''} onChange={(e) => handleRequestAssign(c, e.target.value)}>
-                          <option value="">-- Unassigned --</option>
-                          {staff.map(s => (
-                            <option key={s._id} value={s._id}>{s.fullName} ({s.email})</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <button className="btn btn-sm" onClick={() => window.location.href = `/complaints/${c._id}`}>View</button>
-                      </td>
-                    </tr>
-                  ))}
-                  {complaints.length === 0 && (
-                    <tr><td colSpan={5}>No complaints found</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div style={{display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12}}>
-              <button className="btn btn-sm btn-outline" disabled={complaintsPage <= 1 || complaintsLoading} onClick={() => fetchComplaints(complaintsPage - 1)}>Previous</button>
-              <button className="btn btn-sm btn-outline" disabled={complaintsPage >= complaintsTotalPages || complaintsLoading} onClick={() => fetchComplaints(complaintsPage + 1)}>Next</button>
-            </div>
+            <p>Advanced complaints management interface would go here.</p>
+            <p style={{marginTop: 12}}>Use the Complaints page for list and quick status updates. Admins can also update complaint status from the complaints list.</p>
           </div>
         )}
 
@@ -388,13 +271,8 @@ const AdminPanel = () => {
 
         <ConfirmModal
           open={confirmOpen}
-          title={confirmPayload?.type === 'change-role' ? 'Change user role' : confirmPayload?.type === 'update-status' ? 'Update complaint status' : confirmPayload?.type === 'assign-complaint' ? 'Assign complaint' : 'Confirm action'}
-          message={
-            confirmPayload?.type === 'change-role' ? `Change role for ${confirmPayload.user?.fullName} to ${confirmPayload.newRole}?` :
-            confirmPayload?.type === 'update-status' ? `Change status of "${confirmPayload.complaint?.title}" to ${confirmPayload.newStatus}?` :
-            confirmPayload?.type === 'assign-complaint' ? `Assign "${confirmPayload.complaint?.title}" to staff member?` :
-            `Are you sure you want to ${confirmPayload?.user?.isActive ? 'deactivate' : 'activate'} ${confirmPayload?.user?.fullName}?`
-          }
+          title={confirmPayload?.type === 'change-role' ? 'Change user role' : 'Confirm action'}
+          message={confirmPayload?.type === 'change-role' ? `Change role for ${confirmPayload.user?.fullName} to ${confirmPayload.newRole}?` : `Are you sure you want to ${confirmPayload?.user?.isActive ? 'deactivate' : 'activate'} ${confirmPayload?.user?.fullName}?`}
           onCancel={() => { setConfirmOpen(false); setConfirmPayload(null); }}
           onConfirm={async () => {
             if (!confirmPayload) return;
@@ -407,14 +285,6 @@ const AdminPanel = () => {
                 const updated = await usersAPI.update(confirmPayload.user._id, { role: confirmPayload.newRole });
                 setUsers(prev => prev.map(x => x._id === updated.data._id ? updated.data : x));
                 setToast({ message: `Role updated to ${confirmPayload.newRole}`, type: 'success' });
-              } else if (confirmPayload.type === 'update-status') {
-                const updated = await complaintAPI.updateStatus(confirmPayload.complaint._id, confirmPayload.newStatus);
-                setComplaints(prev => prev.map(c => c._id === updated.data._id ? updated.data : c));
-                setToast({ message: `Complaint status updated to ${confirmPayload.newStatus}`, type: 'success' });
-              } else if (confirmPayload.type === 'assign-complaint') {
-                const updated = await complaintAPI.update(confirmPayload.complaint._id, { assignedTo: confirmPayload.staffId });
-                setComplaints(prev => prev.map(c => c._id === updated.data._id ? updated.data : c));
-                setToast({ message: `Complaint assigned`, type: 'success' });
               }
             } catch (err) {
               console.error('Action failed', err);
