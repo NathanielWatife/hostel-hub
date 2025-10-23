@@ -88,4 +88,13 @@ export const authAPI = {
   updateProfile: (data) => api.put('/auth/profile', data),
 };
 
+export const usersAPI = {
+  getAll: (params) => api.get('/users', { params }).then(response => ({
+    data: response.data.data,
+    pagination: response.data.pagination
+  })),
+  getById: (id) => api.get(`/users/${id}`).then(response => ({ data: response.data.data })),
+  update: (id, data) => api.put(`/users/${id}`, data).then(response => ({ data: response.data.data }))
+};
+
 export default api;

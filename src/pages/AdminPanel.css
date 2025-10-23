@@ -207,3 +207,29 @@
     align-items: flex-start;
   }
 }
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+.users-table th, .users-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+.users-table th { color: #6c757d; font-size: 13px }
+.users-table td button { margin-right: 8px }
+
+.complaints-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+.complaints-table th, .complaints-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+.complaints-table th { color: #6c757d; font-size: 13px }
+.complaints-table select { padding: 6px 8px; border-radius: 6px; }

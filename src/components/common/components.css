@@ -219,3 +219,29 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Confirm modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+  z-index: 2000;
+}
+.modal-window {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+.modal-actions { display:flex; gap: 8px; justify-content: flex-end; margin-top: 12px }
+
+/* Toast */
+.toast { position: fixed; right: 20px; bottom: 24px; padding: 10px 14px; border-radius: 6px; color: white; z-index: 2100 }
+.toast-info { background: #435eec }
+.toast-success { background: #28a745 }
+.toast-error { background: #dc3545 }

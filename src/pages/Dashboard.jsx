@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { complaintAPI, lostFoundAPI } from '../services/api';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import './Dashboard.css';
 
 const Dashboard = () => {

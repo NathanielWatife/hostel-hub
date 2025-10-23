@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './Header.css';
@@ -8,6 +8,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileBtnRef = useRef(null);
 
   const handleLogout = () => {
     logout();
@@ -23,6 +24,20 @@ const Header = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Close mobile menu on Escape key
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <header className="header">
       <div className="header-content">
@@ -31,14 +46,18 @@ const Header = () => {
           <h2>HostelHub</h2>
         </Link>
         
-        <button 
+        <button
+          ref={mobileBtnRef}
           className="mobile-menu-btn"
           onClick={toggleMobileMenu}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="main-nav"
+          aria-label="Toggle navigation menu"
         >
           ☰
         </button>
 
-        <nav className={`nav ${mobileMenuOpen ? 'open' : ''}`}>
+  <nav id="main-nav" className={`nav ${mobileMenuOpen ? 'open' : ''}`}>
           {user ? (
             <>
               <Link 
@@ -72,7 +91,7 @@ const Header = () => {
                 </Link>
               )}
               
-              <div className="user-menu">
+              <div className="user-menu" role="region" aria-label="User menu">
                 <div className="user-avatar">
                   {user.fullName?.charAt(0).toUpperCase()}
                 </div>
@@ -80,8 +99,8 @@ const Header = () => {
                   <span className="user-name">{user.fullName}</span>
                   <span className="user-role">{user.role}</span>
                 </div>
-                <Link 
-                  to="/profile" 
+                <Link
+                  to="/profile"
                   className="btn btn-outline btn-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >

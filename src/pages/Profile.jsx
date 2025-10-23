@@ -13,7 +13,8 @@ const Profile = () => {
     hostelBlock: '',
     roomNumber: ''
   });
-  const [loading, setLoading] = useState(false);
+  // loading state not required here; keep as false
+  const loading = false;
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');

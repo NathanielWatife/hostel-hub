@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import LostItemForm from '../components/lostfound/LostItemForm';
 import FoundItemForm from '../components/lostfound/FoundItemForm';
@@ -9,7 +9,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import './LostFoundPage.css';
 
 const LostFoundPage = () => {
-  const { user } = useAuth();
+  useAuth();
   const [activeTab, setActiveTab] = useState('gallery'); // 'gallery', 'lost', 'found', 'myItems'
   const [lostItems, setLostItems] = useState([]);
   const [foundItems, setFoundItems] = useState([]);
@@ -21,11 +21,7 @@ const LostFoundPage = () => {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchItems();
-  }, [activeTab]);
-
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -57,7 +53,13 @@ const LostFoundPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  
 
   const handleReportLost = async (itemData) => {
     try {
