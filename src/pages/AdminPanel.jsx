@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { complaintAPI, lostFoundAPI, usersAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -23,18 +23,22 @@ const AdminPanel = () => {
   const [usersLimit] = useState(10);
   const [usersTotalPages, setUsersTotalPages] = useState(1);
   const [usersQuery, setUsersQuery] = useState('');
+  // Complaints management states
+  const [complaints, setComplaints] = useState([]);
+  const [complaintsLoading, setComplaintsLoading] = useState(false);
+  const [complaintsPage, setComplaintsPage] = useState(1);
+  const [complaintsLimit] = useState(12);
+  const [complaintsTotalPages, setComplaintsTotalPages] = useState(1);
+  const [staff, setStaff] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmPayload, setConfirmPayload] = useState(null);
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      fetchAdminData();
-    }
-  }, [user]);
+  
 
-  const fetchAdminData = async () => {
+  const fetchAdminData = useCallback(async () => {
     try {
       setLoading(true);
       // In a real app, you'd have specific admin endpoints
@@ -77,7 +81,7 @@ const AdminPanel = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [usersLimit]);
 
   const fetchUsers = async (page = 1, q = '') => {
     try {
@@ -92,6 +96,46 @@ const AdminPanel = () => {
       setUsersLoading(false);
     }
   };
+
+  const fetchComplaints = useCallback(async (page = 1, q = '') => {
+    try {
+      setComplaintsLoading(true);
+      const res = await complaintAPI.getAll({ page, limit: complaintsLimit, q });
+      setComplaints(res.data || []);
+      if (res.pagination) setComplaintsTotalPages(res.pagination.pages || 1);
+      setComplaintsPage(page);
+    } catch (err) {
+      console.error('Error fetching complaints:', err);
+    } finally {
+      setComplaintsLoading(false);
+    }
+  }, [complaintsLimit]);
+
+  const fetchStaff = useCallback(async () => {
+    try {
+      setStaffLoading(true);
+      const res = await usersAPI.getAll({ page: 1, limit: 50, role: 'staff' });
+      setStaff(res.data || []);
+    } catch (err) {
+      console.error('Error fetching staff users:', err);
+    } finally {
+      setStaffLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetchAdminData();
+    }
+  }, [user, fetchAdminData]);
+
+  useEffect(() => {
+    // When the complaints tab becomes active, load complaints and staff list
+    if (activeTab === 'complaints') {
+      fetchComplaints(1);
+      fetchStaff();
+    }
+  }, [activeTab, fetchComplaints, fetchStaff]);
 
   if (!user || user.role !== 'admin') {
     return (
@@ -194,8 +238,72 @@ const AdminPanel = () => {
         {activeTab === 'complaints' && (
           <div className="complaints-tab">
             <h3>Complaints Management</h3>
-            <p>Advanced complaints management interface would go here.</p>
-            <p style={{marginTop: 12}}>Use the Complaints page for list and quick status updates. Admins can also update complaint status from the complaints list.</p>
+            <p>Manage complaints: update status and assign to staff.</p>
+
+            <div style={{marginTop: 12}}>
+              {complaintsLoading ? (
+                <LoadingSpinner />
+              ) : (
+                <div style={{overflowX: 'auto'}}>
+                  <table className="users-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Reporter</th>
+                        <th>Status</th>
+                        <th>Assigned To</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {complaints.map(c => (
+                        <tr key={c._id}>
+                          <td style={{maxWidth: 300}}>{c.title}</td>
+                          <td>{c.anonymous ? 'Anonymous' : c.userId?.fullName || '-'}</td>
+                          <td>
+                            <select value={c.status} onChange={(e) => {
+                              const newStatus = e.target.value;
+                              setConfirmPayload({ type: 'update-complaint-status', complaint: c, newStatus });
+                              setConfirmOpen(true);
+                            }}>
+                              <option value="submitted">submitted</option>
+                              <option value="in-review">in-review</option>
+                              <option value="assigned">assigned</option>
+                              <option value="in-progress">in-progress</option>
+                              <option value="resolved">resolved</option>
+                              <option value="closed">closed</option>
+                            </select>
+                          </td>
+                          <td>
+                            <select disabled={staffLoading} value={c.assignedTo?._id || ''} onChange={(e) => {
+                              const staffId = e.target.value || null;
+                              setConfirmPayload({ type: 'assign-complaint', complaint: c, staffId });
+                              setConfirmOpen(true);
+                            }}>
+                              <option value="">-- Unassigned --</option>
+                              {staff.map(s => (
+                                <option key={s._id} value={s._id}>{s.fullName} ({s.email})</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <button className="btn btn-sm btn-outline" onClick={() => window.location.href = `/complaints/${c._id}`}>View</button>
+                          </td>
+                        </tr>
+                      ))}
+                      {complaints.length === 0 && (
+                        <tr><td colSpan={5}>No complaints found</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div style={{display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12}}>
+                <button className="btn btn-sm btn-outline" disabled={complaintsPage <= 1 || complaintsLoading} onClick={() => fetchComplaints(complaintsPage - 1)}>Previous</button>
+                <button className="btn btn-sm btn-outline" disabled={complaintsPage >= complaintsTotalPages || complaintsLoading} onClick={() => fetchComplaints(complaintsPage + 1)}>Next</button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -285,6 +393,17 @@ const AdminPanel = () => {
                 const updated = await usersAPI.update(confirmPayload.user._id, { role: confirmPayload.newRole });
                 setUsers(prev => prev.map(x => x._id === updated.data._id ? updated.data : x));
                 setToast({ message: `Role updated to ${confirmPayload.newRole}`, type: 'success' });
+              } else if (confirmPayload.type === 'update-complaint-status') {
+                const { complaint, newStatus } = confirmPayload;
+                const updated = await complaintAPI.updateStatus(complaint._id, newStatus);
+                setComplaints(prev => prev.map(c => c._id === updated.data._id ? updated.data : c));
+                setToast({ message: `Complaint status updated to ${newStatus}`, type: 'success' });
+              } else if (confirmPayload.type === 'assign-complaint') {
+                const { complaint, staffId } = confirmPayload;
+                const payload = { assignedTo: staffId || null };
+                const updated = await complaintAPI.update(complaint._id, payload);
+                setComplaints(prev => prev.map(c => c._id === updated.data._id ? updated.data : c));
+                setToast({ message: `Complaint assignment updated`, type: 'success' });
               }
             } catch (err) {
               console.error('Action failed', err);

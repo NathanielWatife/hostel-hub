@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { ITEM_CATEGORIES } from '../../utils/constants';
 import LoadingSpinner from '../common/LoadingSpinner';
 import './ItemForms.css';
 
 const LostItemForm = ({ onSubmit, onCancel }) => {
-  const { user } = useAuth();
+  // const { user } = useAuth(); // not used in this form currently
   const [formData, setFormData] = useState({
     category: '',
     itemName: '',

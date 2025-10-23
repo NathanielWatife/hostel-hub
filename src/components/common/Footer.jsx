@@ -12,18 +12,18 @@ const Footer = () => {
             and lost & found services. Making campus life easier and more organized.
           </p>
           <div className="social-links">
-            <a href="#" className="social-link" aria-label="Facebook">
+            <button type="button" className="social-link" aria-label="Facebook" onClick={() => window.open('https://facebook.com', '_blank')}>
               📘
-            </a>
-            <a href="#" className="social-link" aria-label="Twitter">
+            </button>
+            <button type="button" className="social-link" aria-label="Twitter" onClick={() => window.open('https://twitter.com', '_blank')}>
               🐦
-            </a>
-            <a href="#" className="social-link" aria-label="Instagram">
+            </button>
+            <button type="button" className="social-link" aria-label="Instagram" onClick={() => window.open('https://instagram.com', '_blank')}>
               📷
-            </a>
-            <a href="#" className="social-link" aria-label="LinkedIn">
+            </button>
+            <button type="button" className="social-link" aria-label="LinkedIn" onClick={() => window.open('https://linkedin.com', '_blank')}>
               💼
-            </a>
+            </button>
           </div>
         </div>
         

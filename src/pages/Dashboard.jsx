@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { complaintAPI, lostFoundAPI } from '../services/api';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+// LoadingSpinner intentionally not used in this file (skeletons are used instead)
 import './Dashboard.css';
 
 const Dashboard = () => {
