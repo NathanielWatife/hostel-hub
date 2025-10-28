@@ -1,92 +1,113 @@
 import React from 'react';
-import { useComplaints } from '../../contexts/ComplaintContext';
 import ComplaintCard from './ComplaintCard';
-import { FiLoader, FiAlertCircle, FiInbox } from 'react-icons/fi';
+import { COMPLAINT_CATEGORIES, COMPLAINT_STATUSES, COMPLAINT_PRIORITIES } from '../../utils/constants';
+import './ComplaintList.css';
 
-function ComplaintList() {
-  const { complaints, loading } = useComplaints();
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="text-center">
-          <FiLoader className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading complaints...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (complaints.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <FiInbox className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No complaints found</h3>
-        <p className="text-gray-600 max-w-md mx-auto">
-          {complaints.length === 0 
-            ? "You haven't submitted any complaints yet. Click 'New Complaint' to get started."
-            : "No complaints match your current filters."
-          }
-        </p>
-      </div>
-    );
-  }
-
-  // Group complaints by status for better organization
-  const groupedComplaints = {
-    open: complaints.filter(c => ['submitted', 'in-review', 'assigned', 'in-progress'].includes(c.status)),
-    resolved: complaints.filter(c => c.status === 'resolved'),
-    closed: complaints.filter(c => c.status === 'closed')
+const ComplaintList = ({ 
+  complaints, 
+  filters, 
+  onFilterChange, 
+  onViewDetails, 
+  onStatusUpdate,
+  userRole 
+}) => {
+  const handleFilterChange = (filterType, value) => {
+    onFilterChange({
+      ...filters,
+      [filterType]: value
+    });
   };
 
+  const clearFilters = () => {
+    onFilterChange({
+      status: '',
+      category: '',
+      priority: ''
+    });
+  };
+
+  const hasActiveFilters = filters.status || filters.category || filters.priority;
+
   return (
-    <div className="space-y-6">
-      {/* Open Complaints */}
-      {groupedComplaints.open.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
-            Open Issues ({groupedComplaints.open.length})
-          </h3>
-          <div className="grid gap-4">
-            {groupedComplaints.open.map(complaint => (
-              <ComplaintCard key={complaint.id} complaint={complaint} />
+    <div className="complaint-list">
+      <div className="filters-section">
+        <h3>Filters</h3>
+        <div className="filter-controls">
+          <select
+            value={filters.status}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Statuses</option>
+            {COMPLAINT_STATUSES.map(status => (
+              <option key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </option>
             ))}
-          </div>
-        </div>
-      )}
+          </select>
 
-      {/* Resolved Complaints */}
-      {groupedComplaints.resolved.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-            Resolved ({groupedComplaints.resolved.length})
-          </h3>
-          <div className="grid gap-4">
-            {groupedComplaints.resolved.map(complaint => (
-              <ComplaintCard key={complaint.id} complaint={complaint} />
+          <select
+            value={filters.category}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Categories</option>
+            {COMPLAINT_CATEGORIES.map(category => (
+              <option key={category} value={category}>
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </option>
             ))}
-          </div>
-        </div>
-      )}
+          </select>
 
-      {/* Closed Complaints */}
-      {groupedComplaints.closed.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
-            Closed ({groupedComplaints.closed.length})
-          </h3>
-          <div className="grid gap-4">
-            {groupedComplaints.closed.map(complaint => (
-              <ComplaintCard key={complaint.id} complaint={complaint} />
+          <select
+            value={filters.priority}
+            onChange={(e) => handleFilterChange('priority', e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Priorities</option>
+            {COMPLAINT_PRIORITIES.map(priority => (
+              <option key={priority} value={priority}>
+                {priority.charAt(0).toUpperCase() + priority.slice(1)}
+              </option>
             ))}
-          </div>
+          </select>
+
+          {hasActiveFilters && (
+            <button 
+              onClick={clearFilters}
+              className="btn btn-secondary btn-sm"
+            >
+              Clear Filters
+            </button>
+          )}
         </div>
-      )}
+      </div>
+
+      <div className="complaints-grid">
+        {complaints.length === 0 ? (
+          <div className="empty-state">
+            <h3>No complaints found</h3>
+            <p>
+              {hasActiveFilters 
+                ? 'Try adjusting your filters to see more results.' 
+                : 'Get started by creating your first complaint.'
+              }
+            </p>
+          </div>
+        ) : (
+          complaints.map(complaint => (
+            <ComplaintCard
+              key={complaint._id}
+              complaint={complaint}
+              onViewDetails={onViewDetails}
+              onStatusUpdate={onStatusUpdate}
+              userRole={userRole}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
-}
+};
 
 export default ComplaintList;

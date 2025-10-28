@@ -1,78 +1,39 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Navbar from './components/layout/Navbar';
-import Layout from './components/layout/Layout';
+import { AuthProvider } from './contexts/AuthContext';
+import Header from './components/common/Header';
+import Footer from './components/common/Footer';
+import Dashboard from './pages/Dashboard';
+import ComplaintsPage from './pages/ComplaintsPage';
+import LostFoundPage from './pages/LostFoundPage';
+import AdminPanel from './pages/AdminPanel';
+import Profile from './pages/Profile';
 import Login from './components/auth/Login';
-import Signup from './components/auth/Signup';
-import Dashboard from './components/dashboard/Dashboard';
-import ComplaintManagement from './components/complaints/ComplaintManagement';
-import LostFound from './components/lost-found/LostFound';
-import AdminPanel from './components/admin/AdminPanel';
-import ForgotPassword from './components/auth/ForgotPassword';
-import { ComplaintProvider } from './contexts/ComplaintContext';
-import './index.css';
-
-// Protected Route Component
-function ProtectedRoute({ children, requiredRole }) {
-  const { currentUser, userData } = useAuth();
-  
-  if (!currentUser) {
-    return <Navigate to="/login" />;
-  }
-
-  if (requiredRole && userData?.role !== requiredRole && userData?.role !== 'admin') {
-    return <Navigate to="/dashboard" />;
-  }
-
-  return children;
-}
+import Register from './components/auth/Register';
+import './App.css';
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <ComplaintProvider>
-          <Layout>
-          <Navbar />
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            
-            {/* Protected Routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/complaints" element={
-              <ProtectedRoute>
-                <ComplaintManagement />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/lost-found" element={
-              <ProtectedRoute>
-                <LostFound />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/admin" element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminPanel />
-              </ProtectedRoute>
-            } />
-            
-            {/* Default Route */}
-            <Route path="/" element={<Navigate to="/dashboard" />} />
-          </Routes>
-        </Layout>
-        </ComplaintProvider>
-      </AuthProvider>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Header />
+          <main className="main-content">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/complaints" element={<ComplaintsPage />} />
+              <Route path="/lost-found" element={<LostFoundPage />} />
+              <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

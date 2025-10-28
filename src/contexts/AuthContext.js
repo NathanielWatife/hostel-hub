@@ -1,104 +1,68 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  updateProfile
-} from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { loginUser, registerUser, getCurrentUser } from '../services/auth';
 
 const AuthContext = createContext();
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
-export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [userData, setUserData] = useState(null);
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Sign up function
-  const signup = async (email, password, userData) => {
-    const { user } = await createUserWithEmailAndPassword(auth, email, password);
-    
-    // Update profile
-    await updateProfile(user, {
-      displayName: userData.displayName
-    });
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
-    // Save user data to Firestore
-    const userDoc = {
-      uid: user.uid,
-      email: user.email,
-      displayName: userData.displayName,
-      role: userData.role || 'student',
-      block: userData.block || '',
-      roomNumber: userData.roomNumber || '',
-      phone: userData.phone || '',
-      createdAt: new Date(),
-      lastLogin: new Date()
-    };
-
-    await setDoc(doc(db, 'users', user.uid), userDoc);
-    return user;
-  };
-
-  // Login function
-  const login = (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
-  };
-
-  // Logout function
-  const logout = () => {
-    return signOut(auth);
-  };
-
-  // Reset password
-  const resetPassword = (email) => {
-    return sendPasswordResetEmail(auth, email);
-  };
-
-  // Fetch user data from Firestore
-  const fetchUserData = async (user) => {
-    if (user) {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        setUserData(userDoc.data());
-      } else {
-        setUserData(null);
+  const checkAuth = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const userData = await getCurrentUser();
+        setUser(userData);
       }
-    } else {
-      setUserData(null);
+    } catch (error) {
+      localStorage.removeItem('token');
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      await fetchUserData(user);
-      setLoading(false);
-    });
+  const login = async (credentials) => {
+    const response = await loginUser(credentials);
+    localStorage.setItem('token', response.token);
+    setUser(response.user);
+    return response;
+  };
 
-    return unsubscribe;
-  }, []);
+  const register = async (userData) => {
+    const response = await registerUser(userData);
+    localStorage.setItem('token', response.token);
+    setUser(response.user);
+    return response;
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+  };
 
   const value = {
-    currentUser,
-    userData,
-    signup,
+    user,
     login,
+    register,
     logout,
-    resetPassword,
-    refreshUserData: () => fetchUserData(currentUser)
+    loading
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
-}
+};
