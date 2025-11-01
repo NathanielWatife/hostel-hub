@@ -70,6 +70,7 @@ const AdminPanel = () => {
         setUsers(usersRes.data || []);
         if (usersRes.pagination) {
           setUsersTotalPages(usersRes.pagination.pages || 1);
+          setStats(prev => ({ ...prev, totalUsers: usersRes.pagination.total || (usersRes.data || []).length }));
         }
       } catch (err) {
         console.warn('Could not fetch users for admin panel', err);
