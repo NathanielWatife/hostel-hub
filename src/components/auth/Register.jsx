@@ -18,15 +18,49 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] });
   
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (name === 'password') {
+      setPasswordStrength(checkPasswordStrength(value));
+    }
+  };
+
+  // Password strength helpers (no external deps)
+  const passwordRequirements = [
+    { id: 1, text: 'At least 8 characters' },
+    { id: 2, text: 'Contains uppercase letter' },
+    { id: 3, text: 'Contains lowercase letter' },
+    { id: 4, text: 'Contains number' },
+    { id: 5, text: 'Contains special character' }
+  ];
+
+  const checkPasswordStrength = (password) => {
+    const checks = [
+      password.length >= 8,
+      /[A-Z]/.test(password),
+      /[a-z]/.test(password),
+      /[0-9]/.test(password),
+      /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    ];
+    const met = checks.filter(Boolean).length;
+    const score = (met / checks.length) * 100;
+    const feedback = passwordRequirements.map((req, i) => ({ ...req, met: checks[i] }));
+    return { score, feedback };
+  };
+
+  const strengthColor = (score) => {
+    if (score < 40) return '#dc3545'; // red
+    if (score < 70) return '#fd7e14'; // orange
+    return '#28a745'; // green
   };
 
   const handleSubmit = async (e) => {
@@ -136,26 +170,81 @@ const Register = () => {
 
           <div className="form-group">
             <label className="form-label">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="form-control"
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="form-control"
+                required
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="btn btn-sm btn-outline"
+                style={{ position: 'absolute', right: 8, top: 8, padding: '4px 8px' }}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+
+            {/* Strength meter */}
+            {formData.password && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#6c757d' }}>
+                  <span>Password strength</span>
+                  <span style={{ color: strengthColor(passwordStrength.score), fontWeight: 600 }}>
+                    {passwordStrength.score < 40 ? 'Weak' : passwordStrength.score < 70 ? 'Medium' : 'Strong'}
+                  </span>
+                </div>
+                <div style={{ height: 6, background: '#e9ecef', borderRadius: 4 }}>
+                  <div
+                    style={{
+                      height: 6,
+                      width: `${passwordStrength.score}%`,
+                      background: strengthColor(passwordStrength.score),
+                      borderRadius: 4,
+                      transition: 'width 200ms ease'
+                    }}
+                  />
+                </div>
+                {/* Requirements list */}
+                <ul style={{ marginTop: 8, paddingLeft: 16 }}>
+                  {(passwordStrength.feedback || passwordRequirements).map((req) => (
+                    <li key={req.id} style={{ fontSize: 12, color: req.met ? '#28a745' : '#6c757d' }}>
+                      {req.met ? '✓' : '•'} {req.text}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="form-group">
             <label className="form-label">Confirm Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="form-control"
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="form-control"
+                required
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(v => !v)}
+                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                className="btn btn-sm btn-outline"
+                style={{ position: 'absolute', right: 8, top: 8, padding: '4px 8px' }}
+              >
+                {showConfirmPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           
           <button 

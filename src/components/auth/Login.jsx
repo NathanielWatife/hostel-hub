@@ -6,7 +6,7 @@ import './Auth.css';
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    matricNo: '',
+    identifier: '', // email or matric number
     password: ''
   });
   const [loading, setLoading] = useState(false);
@@ -45,11 +45,11 @@ const Login = () => {
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">MatricNo:</label>
+            <label className="form-label">Email or MatricNo</label>
             <input
               type="text"
-              name="matricNo"
-              value={formData.matricNo}
+              name="identifier"
+              value={formData.identifier}
               onChange={handleChange}
               className="form-control"
               required
