@@ -40,7 +40,8 @@ const Login = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-  <h2>Login to Yaba-HostelHub</h2>
+        <h2>Login to Yaba-HostelHub</h2>
+        <p className="auth-subtitle">Access your dashboard, complaints, and items</p>
         {error && <div className="alert alert-error">{error}</div>}
         
         <form onSubmit={handleSubmit}>
@@ -52,6 +53,7 @@ const Login = () => {
               value={formData.identifier}
               onChange={handleChange}
               className="form-control"
+              autoComplete="username"
               required
             />
           </div>
@@ -64,6 +66,7 @@ const Login = () => {
               value={formData.password}
               onChange={handleChange}
               className="form-control"
+              autoComplete="current-password"
               required
             />
           </div>

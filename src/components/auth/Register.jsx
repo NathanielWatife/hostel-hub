@@ -87,7 +87,8 @@ const Register = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-  <h2>Register for Yaba-HostelHub</h2>
+        <h2>Register for Yaba-HostelHub</h2>
+        <p className="auth-subtitle">Create your account to manage complaints and lost & found</p>
         {error && <div className="alert alert-error">{error}</div>}
         
         <form onSubmit={handleSubmit}>
@@ -99,6 +100,7 @@ const Register = () => {
               value={formData.matricNo}
               onChange={handleChange}
               className="form-control"
+              autoComplete="username"
               required
             />
           </div>
@@ -111,6 +113,7 @@ const Register = () => {
               value={formData.email}
               onChange={handleChange}
               className="form-control"
+              autoComplete="email"
               required
             />
           </div>
@@ -123,6 +126,7 @@ const Register = () => {
               value={formData.fullName}
               onChange={handleChange}
               className="form-control"
+              autoComplete="name"
               required
             />
           </div>
@@ -152,6 +156,7 @@ const Register = () => {
                 value={formData.roomNumber}
                 onChange={handleChange}
                 className="form-control"
+                autoComplete="section"
                 required
               />
             </div>
@@ -165,6 +170,7 @@ const Register = () => {
               value={formData.phone}
               onChange={handleChange}
               className="form-control"
+              autoComplete="tel"
             />
           </div>
 
