@@ -87,7 +87,7 @@ const Register = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2>Register for HostelHub</h2>
+  <h2>Register for Yaba-HostelHub</h2>
         {error && <div className="alert alert-error">{error}</div>}
         
         <form onSubmit={handleSubmit}>

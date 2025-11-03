@@ -1,5 +1,5 @@
 .dashboard {
-  padding: 20px 0;
+  padding: 24px 0;
 }
 
 .dashboard h1 {
@@ -235,6 +235,11 @@
 .quick-action-card p {
   color: var(--gray-600);
   font-size: 0.875rem;
+}
+
+/* Add breathing room before the lower sections */
+.dashboard-sections {
+  margin-top: 40px;
 }
 
 @media (max-width: 968px) {

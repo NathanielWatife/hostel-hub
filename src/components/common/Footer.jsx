@@ -6,7 +6,7 @@ const Footer = () => {
     <footer className="footer">
       <div className="footer-content">
         <div className="footer-brand">
-          <h3>HostelHub</h3>
+          <h3>Yaba-HostelHub</h3>
           <p>
             Your all-in-one platform for hostel complaint management 
             and lost & found services. Making campus life easier and more organized.
@@ -47,7 +47,7 @@ const Footer = () => {
       </div>
       
       <div className="footer-bottom">
-        <p>&copy; 2024 HostelHub. All rights reserved. | Built with ❤️ for better campus life</p>
+  <p>&copy; 2024 Yaba-HostelHub. All rights reserved. | Built with ❤️ for better campus life</p>
       </div>
     </footer>
   );

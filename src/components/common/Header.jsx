@@ -40,10 +40,10 @@ const Header = () => {
 
   return (
     <header className="header">
-      <div className="header-content">
+      <div className="container header-content">
         <Link to="/" className="logo" onClick={() => setMobileMenuOpen(false)}>
           <div className="logo-icon">🏠</div>
-          <h2>HostelHub</h2>
+          <h2>Yaba-HostelHub</h2>
         </Link>
         
         <button

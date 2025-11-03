@@ -48,7 +48,7 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="dashboard">
+      <div className="container dashboard">
         <div className="skeleton" style={{ height: '50px', width: '300px', marginBottom: '30px' }}></div>
         <div className="stats-grid">
           {[1,2,3,4].map(i => (
@@ -60,7 +60,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="dashboard">
+    <div className="container dashboard">
       <h1>Welcome back, {user?.fullName}! 👋</h1>
       <p className="dashboard-subtitle">
         Here's what's happening with your complaints and items today.
