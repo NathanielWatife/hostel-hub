@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [recentComplaints, setRecentComplaints] = useState([]);
   const [recentItems, setRecentItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -21,26 +22,29 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
+      setError(null);
       const [complaintsRes, lostRes, foundRes] = await Promise.all([
         complaintAPI.getMyComplaints(),
         lostFoundAPI.getMyItems(),
         lostFoundAPI.getFoundItems({ limit: 5 })
       ]);
 
-      const complaints = complaintsRes.data;
-      const lostItems = lostRes.data;
+      const complaints = complaintsRes.data || [];
+      const lostItems = lostRes.data?.lostItems || [];
+      const foundItems = foundRes.data || [];
       
       setStats({
         complaints: complaints.length,
         lostItems: lostItems.length,
-        foundItems: foundRes.data.length,
+        foundItems: foundItems.length,
         resolvedComplaints: complaints.filter(c => c.status === 'resolved' || c.status === 'closed').length
       });
 
       setRecentComplaints(complaints.slice(0, 5));
-      setRecentItems(foundRes.data.slice(0, 5));
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      setRecentItems(foundItems.slice(0, 5));
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -65,6 +69,8 @@ const Dashboard = () => {
       <p className="dashboard-subtitle">
         Here's what's happening with your complaints and items today.
       </p>
+      
+      {error && <div className="alert alert-error">{error}</div>}
       
       <div className="stats-grid">
         <div className="stat-card complaints">

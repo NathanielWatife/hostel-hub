@@ -25,9 +25,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle 401 Unauthorized
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/login';
+    }
+    // Handle network errors
+    if (!error.response) {
+      console.error('Network error:', error.message);
     }
     return Promise.reject(error);
   }

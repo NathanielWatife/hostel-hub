@@ -14,6 +14,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
     checkAuth();
@@ -28,6 +29,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       localStorage.removeItem('token');
+      setAuthError('Session expired. Please login again.');
     } finally {
       setLoading(false);
     }
@@ -50,6 +52,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    setAuthError(null);
   };
 
   const value = {
@@ -57,7 +60,9 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    loading
+    loading,
+    authError,
+    setAuthError
   };
 
   return (
