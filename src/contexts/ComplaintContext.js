@@ -1,21 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  arrayUnion,
-  arrayRemove,
-  collection, 
-  addDoc, 
-  updateDoc, 
-  doc, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot,
-  getDocs,
-  getDoc,
-  serverTimestamp 
-} from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../config/firebase';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { complaintAPI } from '../services/api';
 import { useAuth } from './AuthContext';
 
 const ComplaintContext = createContext();
@@ -26,7 +10,8 @@ export function useComplaints() {
 
 export function ComplaintProvider({ children }) {
   const [complaints, setComplaints] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     status: 'all',
     category: 'all',
@@ -34,7 +19,7 @@ export function ComplaintProvider({ children }) {
     sortBy: 'createdAt',
     sortOrder: 'desc'
   });
-  const { userData } = useAuth();
+  const { user } = useAuth();
 
   // Categories with icons and colors
   const categories = {
@@ -44,7 +29,8 @@ export function ComplaintProvider({ children }) {
     furniture: { name: 'Furniture', color: 'bg-orange-100 text-orange-800', icon: '🪑' },
     cleaning: { name: 'Cleaning', color: 'bg-green-100 text-green-800', icon: '🧹' },
     security: { name: 'Security', color: 'bg-red-100 text-red-800', icon: '🔒' },
-    noise: { name: 'Noise', color: 'bg-indigo-100 text-indigo-800', icon: '🔊' }
+    noise: { name: 'Noise', color: 'bg-indigo-100 text-indigo-800', icon: '🔊' },
+    other: { name: 'Other', color: 'bg-gray-100 text-gray-800', icon: '📋' }
   };
 
   const priorities = {
@@ -63,159 +49,117 @@ export function ComplaintProvider({ children }) {
     closed: { name: 'Closed', color: 'bg-purple-100 text-purple-800' }
   };
 
-  // Upload images to Firebase Storage
-  const uploadImages = async (files, complaintId) => {
-    const uploadPromises = files.map(async (file) => {
-      const storageRef = ref(storage, `complaints/${complaintId}/${file.name}`);
-      await uploadBytes(storageRef, file);
-      return getDownloadURL(storageRef);
-    });
+  // Fetch complaints based on user role and filters
+  const fetchComplaints = useCallback(async () => {
+    if (!user) return;
 
-    return Promise.all(uploadPromises);
-  };
-
-  // Submit new complaint
-  const submitComplaint = async (complaintData, files = []) => {
     try {
-      const complaintRef = collection(db, 'complaints');
-      const complaintDoc = {
-        ...complaintData,
-        status: 'submitted',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        createdBy: userData.uid
-      };
+      setLoading(true);
+      setError(null);
 
-      // Add complaint to Firestore
-      const docRef = await addDoc(complaintRef, complaintDoc);
-      
-      // Upload images if any
-      let imageUrls = [];
-      if (files.length > 0) {
-        imageUrls = await uploadImages(files, docRef.id);
-        await updateDoc(docRef, { imageUris: imageUrls });
+      const params = {};
+      if (filters.status !== 'all') params.status = filters.status;
+      if (filters.category !== 'all') params.category = filters.category;
+      if (filters.priority !== 'all') params.priority = filters.priority;
+
+      let response;
+      if (user.role === 'admin' || user.role === 'staff') {
+        response = await complaintAPI.getAll(params);
+      } else {
+        response = await complaintAPI.getMyComplaints();
       }
 
-      return { success: true, id: docRef.id };
-    } catch (error) {
-      console.error('Error submitting complaint:', error);
-      return { success: false, error: error.message };
+      // Apply client-side filtering if needed
+      let data = response.data || [];
+      if (user.role !== 'admin' && user.role !== 'staff') {
+        if (filters.status !== 'all') {
+          data = data.filter(c => c.status === filters.status);
+        }
+        if (filters.category !== 'all') {
+          data = data.filter(c => c.category === filters.category);
+        }
+        if (filters.priority !== 'all') {
+          data = data.filter(c => c.priority === filters.priority);
+        }
+      }
+
+      setComplaints(data);
+    } catch (err) {
+      console.error('Error fetching complaints:', err);
+      setError(err.message || 'Failed to fetch complaints');
+      setComplaints([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, filters]);
+
+  // Setup initial fetch and re-fetch on filter changes
+  useEffect(() => {
+    fetchComplaints();
+  }, [fetchComplaints]);
+
+  // Submit new complaint
+  const submitComplaint = async (complaintData) => {
+    try {
+      setError(null);
+      const response = await complaintAPI.create(complaintData);
+      // Refresh complaints list
+      await fetchComplaints();
+      return { success: true, id: response.data._id };
+    } catch (err) {
+      console.error('Error submitting complaint:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to submit complaint';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
     }
   };
 
   // Update complaint status
-  const updateComplaintStatus = async (complaintId, updates) => {
+  const updateComplaintStatus = async (complaintId, newStatus) => {
     try {
-      const complaintRef = doc(db, 'complaints', complaintId);
-      await updateDoc(complaintRef, {
-        ...updates,
-        updatedAt: serverTimestamp()
-      });
+      setError(null);
+      await complaintAPI.updateStatus(complaintId, newStatus);
+      // Refresh complaints list
+      await fetchComplaints();
       return { success: true };
-    } catch (error) {
-      console.error('Error updating complaint:', error);
-      return { success: false, error: error.message };
+    } catch (err) {
+      console.error('Error updating complaint status:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to update status';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
     }
   };
 
-  // add comment to complaint
+  // Add comment to complaint
   const addComment = async (complaintId, commentData) => {
-  try {
-    const complaintRef = doc(db, 'complaints', complaintId);
-    await updateDoc(complaintRef, {
-      comments: arrayUnion({
-        ...commentData,
-        timestamp: serverTimestamp()
-      }),
-      updatedAt: serverTimestamp()
-    });
-    return { success: true };
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      return { success: false, error: error.message };
-    }
-  };
-
-  const updateStatusHistory = async (complaintId, newStatus) => {
     try {
-      const complaintRef = doc(db, 'complaints', complaintId);
-      await updateDoc(complaintRef, {
-        statusHistory: arrayUnion({
-          status: newStatus,
-          timestamp: serverTimestamp(),
-          updatedBy: userData.uid
-        }),
-        updatedAt: serverTimestamp()
-      });
+      setError(null);
+      await complaintAPI.addComment(complaintId, commentData.message || commentData);
+      // Refresh complaints list
+      await fetchComplaints();
       return { success: true };
-    } catch (error) {
-      console.error('Error updating status history:', error);
-      return { success: false, error: error.message };
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to add comment';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
     }
   };
 
   // Assign complaint to staff
   const assignComplaint = async (complaintId, staffId) => {
-    return updateComplaintStatus(complaintId, {
-      assignedTo: staffId,
-      status: 'assigned'
-    });
+    return updateComplaintStatus(complaintId, 'assigned');
   };
 
-  // Fetch complaints based on user role and filters
-  useEffect(() => {
-    if (!userData) return;
-
-    setLoading(true);
-    let q = query(collection(db, 'complaints'));
-
-    // Apply filters based on user role
-    if (userData.role === 'student') {
-      q = query(q, where('createdBy', '==', userData.uid));
-    } else if (userData.role === 'staff') {
-      q = query(q, where('assignedTo', '==', userData.uid));
-    }
-    // Admin can see all complaints
-
-    // Apply status filter
-    if (filters.status !== 'all') {
-      q = query(q, where('status', '==', filters.status));
-    }
-
-    // Apply category filter
-    if (filters.category !== 'all') {
-      q = query(q, where('category', '==', filters.category));
-    }
-
-    // Apply priority filter
-    if (filters.priority !== 'all') {
-      q = query(q, where('priority', '==', filters.priority));
-    }
-
-    // Apply sorting
-    q = query(q, orderBy(filters.sortBy, filters.sortOrder));
-
-    const unsubscribe = onSnapshot(q, 
-      (snapshot) => {
-        const complaintsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setComplaints(complaintsData);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching complaints:', error);
-        setLoading(false);
-      }
-    );
-
-    return unsubscribe;
-  }, [userData, filters]);
+  // Update status history (integrated into updateComplaintStatus)
+  const updateStatusHistory = async (complaintId, newStatus) => {
+    return updateComplaintStatus(complaintId, newStatus);
+  };
 
   const value = {
     complaints,
     loading,
+    error,
     filters,
     setFilters,
     categories,
@@ -225,7 +169,8 @@ export function ComplaintProvider({ children }) {
     updateComplaintStatus,
     assignComplaint,
     addComment,
-    updateStatusHistory
+    updateStatusHistory,
+    fetchComplaints
   };
 
   return (

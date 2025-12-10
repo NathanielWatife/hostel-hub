@@ -1,14 +1,54 @@
-import React, { useState } from 'react';
-import { useComplaints } from '../../contexts/ComplaintContext';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import ComplaintForm from './ComplaintForm';
 import ComplaintList from './ComplaintList';
 import ComplaintFilters from './ComplaintFilters';
+import { complaintAPI } from '../../services/api';
+import LoadingSpinner from '../common/LoadingSpinner';
 import { FiPlus, FiList, FiFilter } from 'react-icons/fi';
 
 function ComplaintManagement() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('list');
   const [showFilters, setShowFilters] = useState(false);
-  const { complaints, loading } = useComplaints();
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    status: '',
+    category: '',
+    priority: ''
+  });
+
+  const fetchComplaints = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (filters.status) params.status = filters.status;
+      if (filters.category) params.category = filters.category;
+      if (filters.priority) params.priority = filters.priority;
+
+      const response = user?.role === 'admin' 
+        ? await complaintAPI.getAll(params)
+        : await complaintAPI.getMyComplaints();
+      
+      setComplaints(response.data);
+    } catch (error) {
+      console.error('Error fetching complaints:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, user]);
+
+  const handleCreateComplaint = async (complaintData) => {
+    try {
+      await complaintAPI.create(complaintData);
+      setActiveTab('list');
+      fetchComplaints();
+    } catch (error) {
+      console.error('Error creating complaint:', error);
+      throw error;
+    }
+  };
 
   const stats = {
     total: complaints.length,
@@ -133,8 +173,8 @@ function ComplaintManagement() {
 
         {/* Content */}
         <div className="p-6">
-          {activeTab === 'list' && <ComplaintList />}
-          {activeTab === 'new' && <ComplaintForm onSuccess={() => setActiveTab('list')} />}
+          {activeTab === 'list' && <ComplaintList complaints={complaints} filters={filters} onFilterChange={setFilters} userRole={user?.role} />}
+          {activeTab === 'new' && <ComplaintForm onSubmit={handleCreateComplaint} onCancel={() => setActiveTab('list')} />}
         </div>
       </div>
     </div>
