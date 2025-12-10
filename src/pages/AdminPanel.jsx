@@ -174,8 +174,8 @@ const AdminPanel = () => {
   useEffect(() => {
     if (user?.role === 'admin') {
       fetchAdminData();
-      // Refresh data every 30 seconds
-      const interval = setInterval(fetchAdminData, 30000);
+      // Refresh data every 2 minutes (120 seconds)
+      const interval = setInterval(fetchAdminData, 120000);
       return () => clearInterval(interval);
     }
   }, [user, fetchAdminData]);
