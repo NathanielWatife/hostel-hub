@@ -23,24 +23,30 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setError(null);
-      const [complaintsRes, lostRes, foundRes] = await Promise.all([
-        complaintAPI.getMyComplaints(),
+      
+      // For admins, fetch all complaints; for students, fetch their own
+      const complaintsRes = user?.role === 'admin' 
+        ? await complaintAPI.getAll({ limit: 100 })
+        : await complaintAPI.getMyComplaints();
+      
+      const [lostRes, foundRes] = await Promise.all([
         lostFoundAPI.getMyItems(),
         lostFoundAPI.getFoundItems({ limit: 5 })
       ]);
 
       const complaints = complaintsRes.data || [];
+      const complaintsArray = Array.isArray(complaints) ? complaints : [];
       const lostItems = lostRes.data?.lostItems || [];
       const foundItems = foundRes.data || [];
       
       setStats({
-        complaints: complaints.length,
+        complaints: complaintsArray.length,
         lostItems: lostItems.length,
         foundItems: foundItems.length,
-        resolvedComplaints: complaints.filter(c => c.status === 'resolved' || c.status === 'closed').length
+        resolvedComplaints: complaintsArray.filter(c => c.status === 'resolved' || c.status === 'closed').length
       });
 
-      setRecentComplaints(complaints.slice(0, 5));
+      setRecentComplaints(complaintsArray.slice(0, 5));
       setRecentItems(foundItems.slice(0, 5));
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -65,9 +71,9 @@ const Dashboard = () => {
 
   return (
     <div className="container dashboard">
-      <h1>Welcome back, {user?.fullName}! 👋</h1>
+      <h1>Welcome back, {user?.role === 'admin' ? 'Admin' : user?.fullName}! 👋</h1>
       <p className="dashboard-subtitle">
-        Here's what's happening with your complaints and items today.
+        {user?.role === 'admin' ? 'Admin Dashboard - Overview of your complaints and items' : "Here's what's happening with your complaints and items today."}
       </p>
       
       {error && <div className="alert alert-error">{error}</div>}
@@ -76,10 +82,10 @@ const Dashboard = () => {
         <div className="stat-card complaints">
           <div className="stat-icon">📝</div>
           <div className="stat-content">
-            <h3>My Complaints</h3>
+            <h3>{user?.role === 'admin' ? 'Total Complaints' : 'My Complaints'}</h3>
             <p className="stat-number">{stats.complaints}</p>
             <div className="stat-trend trend-up">
-              ↑ Active requests
+              {user?.role === 'admin' ? '↑ All complaints' : '↑ Active requests'}
             </div>
           </div>
         </div>

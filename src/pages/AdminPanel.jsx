@@ -44,6 +44,8 @@ const AdminPanel = () => {
   const fetchAdminData = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('🔄 Fetching admin data...');
+      
       // In a real app, you'd have specific admin endpoints
       const [complaintsRes, lostRes, foundRes] = await Promise.all([
         complaintAPI.getAll({ limit: 100 }), // Get more data for better stats
@@ -51,11 +53,24 @@ const AdminPanel = () => {
         lostFoundAPI.getFoundItems({ limit: 100 })
       ]);
 
-      const complaints = Array.isArray(complaintsRes.data) ? complaintsRes.data : [];
-      const lostItems = Array.isArray(lostRes.data) ? lostRes.data : [];
-      const foundItems = Array.isArray(foundRes.data) ? foundRes.data : [];
+      console.log('📊 Raw responses:', { complaintsRes, lostRes, foundRes });
 
-      console.log('Admin data fetched:', { complaints: complaints.length, lost: lostItems.length, found: foundItems.length });
+      // Handle both array and object responses
+      let complaints = [];
+      let lostItems = [];
+      let foundItems = [];
+
+      if (complaintsRes?.data) {
+        complaints = Array.isArray(complaintsRes.data) ? complaintsRes.data : [];
+      }
+      if (lostRes?.data) {
+        lostItems = Array.isArray(lostRes.data) ? lostRes.data : [];
+      }
+      if (foundRes?.data) {
+        foundItems = Array.isArray(foundRes.data) ? foundRes.data : [];
+      }
+
+      console.log('✅ Processed data:', { complaints: complaints.length, lost: lostItems.length, found: foundItems.length });
 
       // Calculate breakdown by category, priority, and status
       const byCategory = {};
@@ -63,19 +78,26 @@ const AdminPanel = () => {
       const byStatus = {};
       
       complaints.forEach(c => {
-        // By category
-        byCategory[c.category] = (byCategory[c.category] || 0) + 1;
-        // By priority
-        byPriority[c.priority] = (byPriority[c.priority] || 0) + 1;
-        // By status
-        byStatus[c.status] = (byStatus[c.status] || 0) + 1;
+        if (c.category) byCategory[c.category] = (byCategory[c.category] || 0) + 1;
+        if (c.priority) byPriority[c.priority] = (byPriority[c.priority] || 0) + 1;
+        if (c.status) byStatus[c.status] = (byStatus[c.status] || 0) + 1;
+      });
+
+      const pendingComplaints = complaints.filter(c => 
+        ['submitted', 'in-review', 'assigned', 'in-progress'].includes(c.status)
+      ).length;
+
+      console.log('📈 Stats calculated:', { 
+        totalComplaints: complaints.length, 
+        pendingComplaints,
+        byCategory,
+        byPriority,
+        byStatus
       });
 
       setStats({
         totalComplaints: complaints.length,
-        pendingComplaints: complaints.filter(c => 
-          ['submitted', 'in-review', 'assigned', 'in-progress'].includes(c.status)
-        ).length,
+        pendingComplaints,
         totalUsers: 0, // You'd get this from a users API
         lostItems: lostItems.length,
         foundItems: foundItems.length,
@@ -172,6 +194,9 @@ const AdminPanel = () => {
         <div className="access-denied">
           <h2>Access Denied</h2>
           <p>You need administrator privileges to access this page.</p>
+          <p style={{ fontSize: '12px', color: '#999', marginTop: '10px' }}>
+            Current user: {user?.fullName || 'Not logged in'} | Role: {user?.role || 'none'}
+          </p>
         </div>
       </div>
     );
@@ -183,15 +208,14 @@ const AdminPanel = () => {
 
   return (
     <div className="admin-panel">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header admin-header">
         <h1>Admin Panel</h1>
         <button 
           className="btn btn-sm btn-outline" 
           onClick={fetchAdminData}
           disabled={loading}
-          style={{ cursor: loading ? 'not-allowed' : 'pointer' }}
         >
-          {loading ? 'Refreshing...' : 'Refresh'}
+          {loading ? '⟳ Refreshing...' : '🔄 Refresh'}
         </button>
       </div>
 
@@ -392,9 +416,10 @@ const AdminPanel = () => {
                 </div>
               )}
 
-              <div style={{display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12}}>
-                <button className="btn btn-sm btn-outline" disabled={complaintsPage <= 1 || complaintsLoading} onClick={() => fetchComplaints(complaintsPage - 1)}>Previous</button>
-                <button className="btn btn-sm btn-outline" disabled={complaintsPage >= complaintsTotalPages || complaintsLoading} onClick={() => fetchComplaints(complaintsPage + 1)}>Next</button>
+              <div className="pagination-controls">
+                <button className="btn btn-sm btn-outline" disabled={complaintsPage <= 1 || complaintsLoading} onClick={() => fetchComplaints(complaintsPage - 1)}>← Previous</button>
+                <span className="pagination-info">Page {complaintsPage} of {complaintsTotalPages}</span>
+                <button className="btn btn-sm btn-outline" disabled={complaintsPage >= complaintsTotalPages || complaintsLoading} onClick={() => fetchComplaints(complaintsPage + 1)}>Next →</button>
               </div>
             </div>
           </div>
@@ -413,10 +438,10 @@ const AdminPanel = () => {
                   onKeyDown={(e) => { if (e.key === 'Enter') fetchUsers(1, usersQuery); }}
                   style={{padding: '8px 10px', borderRadius: 6, border: '1px solid #e6e6e6'}}
                 />
-                <button className="btn btn-sm btn-outline" style={{marginLeft: 8}} onClick={() => fetchUsers(1, usersQuery)}>Search</button>
-                <button className="btn btn-sm" style={{marginLeft: 8}} onClick={() => { setUsersQuery(''); fetchUsers(1, ''); }}>Clear</button>
+                <button className="btn btn-sm btn-outline" onClick={() => fetchUsers(1, usersQuery)}>🔍 Search</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => { setUsersQuery(''); fetchUsers(1, ''); }}>✕ Clear</button>
               </div>
-              <div style={{color: '#6c757d'}}>{usersTotalPages > 0 ? `Page ${usersPage} of ${usersTotalPages}` : ''}</div>
+              <div className="pagination-info">{usersTotalPages > 0 ? `Page ${usersPage} of ${usersTotalPages}` : ''}</div>
             </div>
 
             <div style={{overflowX: 'auto', marginTop: 12}}>
@@ -463,9 +488,10 @@ const AdminPanel = () => {
               </table>
             </div>
 
-            <div style={{display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12}}>
-              <button className="btn btn-sm btn-outline" disabled={usersPage <= 1 || usersLoading} onClick={() => fetchUsers(usersPage - 1, usersQuery)}>Previous</button>
-              <button className="btn btn-sm btn-outline" disabled={usersPage >= usersTotalPages || usersLoading} onClick={() => fetchUsers(usersPage + 1, usersQuery)}>Next</button>
+            <div className="pagination-controls">
+              <button className="btn btn-sm btn-outline" disabled={usersPage <= 1 || usersLoading} onClick={() => fetchUsers(usersPage - 1, usersQuery)}>← Previous</button>
+              <span className="pagination-info">Page {usersPage} of {usersTotalPages}</span>
+              <button className="btn btn-sm btn-outline" disabled={usersPage >= usersTotalPages || usersLoading} onClick={() => fetchUsers(usersPage + 1, usersQuery)}>Next →</button>
             </div>
           </div>
         )}
