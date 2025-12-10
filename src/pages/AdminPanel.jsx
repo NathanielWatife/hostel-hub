@@ -14,7 +14,10 @@ const AdminPanel = () => {
     pendingComplaints: 0,
     totalUsers: 0,
     lostItems: 0,
-    foundItems: 0
+    foundItems: 0,
+    complaintsByCategory: {},
+    complaintsByPriority: {},
+    complaintsByStatus: {}
   });
   const [recentComplaints, setRecentComplaints] = useState([]);
   const [users, setUsers] = useState([]);
@@ -43,14 +46,30 @@ const AdminPanel = () => {
       setLoading(true);
       // In a real app, you'd have specific admin endpoints
       const [complaintsRes, lostRes, foundRes] = await Promise.all([
-        complaintAPI.getAll(),
-        lostFoundAPI.getLostItems(),
-        lostFoundAPI.getFoundItems()
+        complaintAPI.getAll({ limit: 100 }), // Get more data for better stats
+        lostFoundAPI.getLostItems({ limit: 100 }),
+        lostFoundAPI.getFoundItems({ limit: 100 })
       ]);
 
-      const complaints = complaintsRes.data;
-      const lostItems = lostRes.data;
-      const foundItems = foundRes.data;
+      const complaints = Array.isArray(complaintsRes.data) ? complaintsRes.data : [];
+      const lostItems = Array.isArray(lostRes.data) ? lostRes.data : [];
+      const foundItems = Array.isArray(foundRes.data) ? foundRes.data : [];
+
+      console.log('Admin data fetched:', { complaints: complaints.length, lost: lostItems.length, found: foundItems.length });
+
+      // Calculate breakdown by category, priority, and status
+      const byCategory = {};
+      const byPriority = {};
+      const byStatus = {};
+      
+      complaints.forEach(c => {
+        // By category
+        byCategory[c.category] = (byCategory[c.category] || 0) + 1;
+        // By priority
+        byPriority[c.priority] = (byPriority[c.priority] || 0) + 1;
+        // By status
+        byStatus[c.status] = (byStatus[c.status] || 0) + 1;
+      });
 
       setStats({
         totalComplaints: complaints.length,
@@ -59,10 +78,16 @@ const AdminPanel = () => {
         ).length,
         totalUsers: 0, // You'd get this from a users API
         lostItems: lostItems.length,
-        foundItems: foundItems.length
+        foundItems: foundItems.length,
+        complaintsByCategory: byCategory,
+        complaintsByPriority: byPriority,
+        complaintsByStatus: byStatus
       });
 
-      setRecentComplaints(complaints.slice(0, 5));
+      // Sort by newest first and take first 5
+      const sorted = complaints.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setRecentComplaints(sorted.slice(0, 5));
+      
       // fetch users (basic)
       try {
         setUsersLoading(true);
@@ -127,6 +152,9 @@ const AdminPanel = () => {
   useEffect(() => {
     if (user?.role === 'admin') {
       fetchAdminData();
+      // Refresh data every 30 seconds
+      const interval = setInterval(fetchAdminData, 30000);
+      return () => clearInterval(interval);
     }
   }, [user, fetchAdminData]);
 
@@ -155,8 +183,16 @@ const AdminPanel = () => {
 
   return (
     <div className="admin-panel">
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Admin Panel</h1>
+        <button 
+          className="btn btn-sm btn-outline" 
+          onClick={fetchAdminData}
+          disabled={loading}
+          style={{ cursor: loading ? 'not-allowed' : 'pointer' }}
+        >
+          {loading ? 'Refreshing...' : 'Refresh'}
+        </button>
       </div>
 
       <div className="admin-tabs">
@@ -209,6 +245,62 @@ const AdminPanel = () => {
                 <h3>Found Items</h3>
                 <p className="stat-number">{stats.foundItems}</p>
                 <span className="stat-label">Awaiting Claim</span>
+              </div>
+            </div>
+
+            <div className="complaints-breakdown" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginTop: '30px' }}>
+              {/* By Category */}
+              <div className="breakdown-card" style={{ border: '1px solid #e6e6e6', padding: '15px', borderRadius: '8px' }}>
+                <h4 style={{ marginTop: 0, marginBottom: '15px', color: '#333' }}>Complaints by Category</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {Object.entries(stats.complaintsByCategory).length > 0 ? (
+                    Object.entries(stats.complaintsByCategory).map(([category, count]) => (
+                      <div key={category} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #f0f0f0' }}>
+                        <span style={{ textTransform: 'capitalize', color: '#555' }}>{category}</span>
+                        <span style={{ fontWeight: 'bold', backgroundColor: '#e3f2fd', padding: '4px 8px', borderRadius: '4px', color: '#1976d2' }}>{count}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p style={{ color: '#999' }}>No complaints yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* By Priority */}
+              <div className="breakdown-card" style={{ border: '1px solid #e6e6e6', padding: '15px', borderRadius: '8px' }}>
+                <h4 style={{ marginTop: 0, marginBottom: '15px', color: '#333' }}>Complaints by Priority</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {Object.entries(stats.complaintsByPriority).length > 0 ? (
+                    Object.entries(stats.complaintsByPriority).map(([priority, count]) => {
+                      const colorMap = { low: '#28a745', medium: '#ffc107', high: '#fd7e14', emergency: '#dc3545' };
+                      return (
+                        <div key={priority} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #f0f0f0' }}>
+                          <span style={{ textTransform: 'capitalize', color: '#555' }}>{priority}</span>
+                          <span style={{ fontWeight: 'bold', backgroundColor: colorMap[priority] + '20', padding: '4px 8px', borderRadius: '4px', color: colorMap[priority] }}>{count}</span>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p style={{ color: '#999' }}>No complaints yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* By Status */}
+              <div className="breakdown-card" style={{ border: '1px solid #e6e6e6', padding: '15px', borderRadius: '8px' }}>
+                <h4 style={{ marginTop: 0, marginBottom: '15px', color: '#333' }}>Complaints by Status</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {Object.entries(stats.complaintsByStatus).length > 0 ? (
+                    Object.entries(stats.complaintsByStatus).map(([status, count]) => (
+                      <div key={status} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #f0f0f0' }}>
+                        <span style={{ textTransform: 'capitalize', color: '#555' }}>{status}</span>
+                        <span style={{ fontWeight: 'bold', backgroundColor: '#f3e5f5', padding: '4px 8px', borderRadius: '4px', color: '#7b1fa2' }}>{count}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p style={{ color: '#999' }}>No complaints yet</p>
+                  )}
+                </div>
               </div>
             </div>
 
